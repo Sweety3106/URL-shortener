@@ -13,26 +13,37 @@ async function handlegenerateNewShortURL(req, res){
         redirectURL: body.url,
         visitHistory: [],
     });
-
-    return res.json({ id: shortId})
+    return res.render("home",{
+        id: shortId,
+    })
+    
 }
 
-async function handleredirectmainURL(req, res){
+async function handleredirectmainURL(req, res) {
     const shortId = req.params.shortId;
-    const entry = await URL.findOneAndUpdate({
-        shortId
-    }, {$push: {
-        visitHistory: {
-            timestamp : Date.now(),
-        }
-      },
-    });
-    res.redirect(entry.redirectURL)
+
+    const entry = await URL.findOneAndUpdate(
+        { shortId },
+        {
+            $push: {
+                visitHistory: {
+                    timestamp: Date.now(),
+                },
+            },
+        },
+        { new: true }
+    );
+
+    if (!entry) {
+        return res.status(404).send("Short URL not found");
+    }
+
+    return res.redirect(entry.redirectURL);
 }
 
 async function handleGetAnalytics(req, res) {
     const shortId = req.params.shortId;
-    await URL.findOne({ shortId })
+    const result = await URL.findOne({ shortId })
     return res.json({
         totalCLicks: result.visitHistory.length,
         analytics: result.visitHistory,
